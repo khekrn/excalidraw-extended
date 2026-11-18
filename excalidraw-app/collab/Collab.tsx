@@ -89,7 +89,10 @@ import {
 } from "../data/localStorage";
 import { resetBrowserStateVersions } from "../data/tabSync";
 
+import { getRoomWebSocketUrl } from "../data/collabWorker";
+
 import { collabErrorIndicatorAtom } from "./CollabError";
+import { CollabSocket } from "./CollabSocket";
 import Portal from "./Portal";
 
 import type {
@@ -526,10 +529,6 @@ class Collab extends PureComponent<CollabProps, CollabState> {
     this.setIsCollaborating(true);
     LocalData.pauseSave("collaboration");
 
-    const { default: socketIOClient } = await import(
-      /* webpackChunkName: "socketIoClient" */ "socket.io-client"
-    );
-
     const fallbackInitializationHandler = () => {
       this.initializeRoom({
         roomLinkData: existingRoomLinkData,
@@ -542,9 +541,7 @@ class Collab extends PureComponent<CollabProps, CollabState> {
 
     try {
       this.portal.socket = this.portal.open(
-        socketIOClient(import.meta.env.VITE_APP_WS_SERVER_URL, {
-          transports: ["websocket", "polling"],
-        }),
+        new CollabSocket(getRoomWebSocketUrl(roomId)),
         roomId,
         roomKey,
       );
@@ -552,6 +549,12 @@ class Collab extends PureComponent<CollabProps, CollabState> {
       this.portal.socket.once("connect_error", fallbackInitializationHandler);
     } catch (error: any) {
       console.error(error);
+      // e.g. no collaboration server configured — back out cleanly
+      this.setIsCollaborating(false);
+      LocalData.resumeSave("collaboration");
+      if (!existingRoomLinkData) {
+        window.history.pushState({}, APP_NAME, window.location.origin);
+      }
       this.setErrorDialog(error.message);
       return null;
     }
@@ -616,6 +619,16 @@ class Collab extends PureComponent<CollabProps, CollabState> {
                 elements: reconciledElements,
                 scrollToContent: true,
               });
+            } else {
+              // a peer (re)sent its whole scene, e.g. after we reconnected:
+              // merge it so we catch up on what we missed while offline
+              this.handleRemoteSceneUpdate(
+                this._reconcileElements(
+                  toBrandedType<readonly RemoteExcalidrawElement[]>(
+                    decryptedData.payload.elements,
+                  ),
+                ),
+              );
             }
             break;
           }

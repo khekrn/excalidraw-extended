@@ -1,0 +1,5 @@
+node_modules
+.wrangler
+.dev.vars
+# npm lockfile for this package (the repo root ignores lockfiles other than yarn.lock)
+!package-lock.json

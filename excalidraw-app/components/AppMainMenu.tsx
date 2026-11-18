@@ -1,9 +1,9 @@
 import {
-  loginIcon,
-  ExcalLogo,
   eyeIcon,
+  LoadIcon,
+  presentationIcon,
+  ExportIcon,
 } from "@excalidraw/excalidraw/components/icons";
-import { useI18n } from "@excalidraw/excalidraw/i18n";
 import { MainMenu } from "@excalidraw/excalidraw/index";
 import React from "react";
 
@@ -12,7 +12,7 @@ import { isDevEnv } from "@excalidraw/common";
 import type { Theme } from "@excalidraw/element/types";
 
 import { LanguageList } from "../app-language/LanguageList";
-import { isExcalidrawPlusSignedUser } from "../app_constants";
+import { sidebarToggleIcon } from "../workspace/WorkspacePanel";
 
 import { saveDebugState } from "./DebugCanvas";
 
@@ -22,14 +22,39 @@ export const AppMainMenu: React.FC<{
   isCollabEnabled: boolean;
   theme: Theme | "system";
   refresh: () => void;
+  isWorkspaceEnabled: boolean;
+  onImportAsPage: () => void;
+  onToggleWorkspace: () => void;
+  onPresent: () => void;
+  onExportPdf: () => void;
 }> = React.memo((props) => {
-  const { t } = useI18n();
   return (
     <MainMenu>
-      <MainMenu.DefaultItems.LoadScene />
+      {props.isWorkspaceEnabled ? (
+        <>
+          <MainMenu.Item
+            icon={sidebarToggleIcon}
+            onSelect={props.onToggleWorkspace}
+            shortcut="⌘\"
+          >
+            Pages
+          </MainMenu.Item>
+          <MainMenu.Item icon={LoadIcon} onSelect={props.onImportAsPage}>
+            Import as page (Word, Markdown…)
+          </MainMenu.Item>
+        </>
+      ) : (
+        <MainMenu.DefaultItems.LoadScene />
+      )}
       <MainMenu.DefaultItems.SaveToActiveFile />
       <MainMenu.DefaultItems.Export />
       <MainMenu.DefaultItems.SaveAsImage />
+      <MainMenu.Item icon={ExportIcon} onSelect={props.onExportPdf}>
+        Export to PDF
+      </MainMenu.Item>
+      <MainMenu.Item icon={presentationIcon} onSelect={props.onPresent}>
+        Present slides
+      </MainMenu.Item>
       {props.isCollabEnabled && (
         <MainMenu.DefaultItems.LiveCollaborationTrigger
           isCollaborating={props.isCollaborating}
@@ -40,42 +65,25 @@ export const AppMainMenu: React.FC<{
       <MainMenu.DefaultItems.SearchMenu />
       <MainMenu.DefaultItems.Help />
       <MainMenu.DefaultItems.ClearCanvas />
-      <MainMenu.Separator />
-      <MainMenu.ItemLink
-        icon={ExcalLogo}
-        href={`${
-          import.meta.env.VITE_APP_PLUS_LP
-        }/plus?utm_source=excalidraw&utm_medium=app&utm_content=hamburger`}
-        className=""
-      >
-        Excalidraw+
-      </MainMenu.ItemLink>
-      <MainMenu.DefaultItems.Socials />
-      <MainMenu.ItemLink
-        icon={loginIcon}
-        href={`${import.meta.env.VITE_APP_PLUS_APP}${
-          isExcalidrawPlusSignedUser ? "" : "/sign-up"
-        }?utm_source=signin&utm_medium=app&utm_content=hamburger`}
-        className="highlighted"
-      >
-        {isExcalidrawPlusSignedUser ? t("labels.signIn") : t("labels.signUp")}
-      </MainMenu.ItemLink>
       {isDevEnv() && (
-        <MainMenu.Item
-          icon={eyeIcon}
-          onSelect={() => {
-            if (window.visualDebug) {
-              delete window.visualDebug;
-              saveDebugState({ enabled: false });
-            } else {
-              window.visualDebug = { data: [] };
-              saveDebugState({ enabled: true });
-            }
-            props?.refresh();
-          }}
-        >
-          Visual Debug
-        </MainMenu.Item>
+        <>
+          <MainMenu.Separator />
+          <MainMenu.Item
+            icon={eyeIcon}
+            onSelect={() => {
+              if (window.visualDebug) {
+                delete window.visualDebug;
+                saveDebugState({ enabled: false });
+              } else {
+                window.visualDebug = { data: [] };
+                saveDebugState({ enabled: true });
+              }
+              props?.refresh();
+            }}
+          >
+            Visual Debug
+          </MainMenu.Item>
+        </>
       )}
       <MainMenu.Separator />
       <MainMenu.DefaultItems.Preferences />

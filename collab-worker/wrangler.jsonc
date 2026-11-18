@@ -1,0 +1,27 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "excalidraw-collab",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  "durable_objects": {
+    "bindings": [
+      // one object per collaboration room: relays the room's WebSocket
+      // messages, stores its encrypted scene + image files
+      { "name": "ROOMS", "class_name": "CollabRoom" },
+      // one object per shareable (read-only) link
+      { "name": "SHARES", "class_name": "SharedScene" }
+    ]
+  },
+  "migrations": [
+    // SQLite-backed Durable Objects (available on the Workers free plan)
+    { "tag": "v1", "new_sqlite_classes": ["CollabRoom", "SharedScene"] }
+  ],
+  "vars": {
+    // comma-separated origins allowed to use this worker from a browser
+    // ("*" allows any, "http://localhost:*" any local port). Add your
+    // deployed app's origin here.
+    "ALLOWED_ORIGINS": "http://localhost:*,http://127.0.0.1:*"
+  },
+  "dev": { "port": 8787 },
+  "observability": { "enabled": true }
+}

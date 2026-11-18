@@ -11,6 +11,10 @@ interface ImportMetaEnv {
   // collaboration WebSocket server (https: string
   VITE_APP_WS_SERVER_URL: string;
 
+  // Cloudflare collab worker (/collab-worker): live collaboration rooms,
+  // shareable links and their image files
+  VITE_APP_COLLAB_WORKER_URL: string;
+
   // set this only if using the collaboration workflow we use on excalidraw.com
   VITE_APP_PORTAL_URL: string;
   VITE_APP_AI_BACKEND: string;

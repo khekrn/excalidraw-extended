@@ -32,9 +32,11 @@ import type { MakeBrand } from "@excalidraw/common/utility-types";
 import {
   DELETED_ELEMENT_TIMEOUT,
   FILE_UPLOAD_MAX_BYTES,
+  FIREBASE_STORAGE_PREFIXES,
   ROOM_ID_BYTES,
 } from "../app_constants";
 
+import { getCollabWorkerUrl } from "./collabWorker";
 import { encodeFilesForUpload } from "./FileManager";
 import { saveFilesToFirebase } from "./firebase";
 
@@ -62,8 +64,8 @@ export const getSyncableElements = (
     isSyncableElement(element),
   ) as SyncableExcalidrawElement[];
 
-const BACKEND_V2_GET = import.meta.env.VITE_APP_BACKEND_V2_GET_URL;
-const BACKEND_V2_POST = import.meta.env.VITE_APP_BACKEND_V2_POST_URL;
+// shareable links live on the collab worker: POST /shares, GET /shares/:id
+const getSharesUrl = () => `${getCollabWorkerUrl()}/shares`;
 
 const generateRoomId = async () => {
   const buffer = new Uint8Array(ROOM_ID_BYTES);
@@ -204,7 +206,7 @@ export const importFromBackend = async (
   decryptionKey: string,
 ): Promise<ImportedDataState> => {
   try {
-    const response = await fetch(`${BACKEND_V2_GET}${id}`);
+    const response = await fetch(`${getSharesUrl()}/${encodeURIComponent(id)}`);
 
     if (!response.ok) {
       window.alert(t("alerts.importBackendFailed"));
@@ -273,12 +275,13 @@ export const exportToBackend = async (
       maxBytes: FILE_UPLOAD_MAX_BYTES,
     });
 
-    const response = await fetch(BACKEND_V2_POST, {
+    const response = await fetch(getSharesUrl(), {
       method: "POST",
-      body: payload.buffer,
+      body: payload as Uint8Array<ArrayBuffer>,
+      headers: { "Content-Type": "application/octet-stream" },
     });
     const json = await response.json();
-    if (json.id) {
+    if (json.id && json.token) {
       const url = new URL(window.location.href);
       // We need to store the key (and less importantly the id) as hash instead
       // of queryParam in order to never send it to the server
@@ -286,8 +289,9 @@ export const exportToBackend = async (
       const urlString = url.toString();
 
       await saveFilesToFirebase({
-        prefix: `/files/shareLinks/${json.id}`,
+        prefix: `${FIREBASE_STORAGE_PREFIXES.shareLinkFiles}/${json.id}`,
         files: filesToUpload,
+        token: json.token,
       });
 
       return { url: urlString, errorMessage: null };

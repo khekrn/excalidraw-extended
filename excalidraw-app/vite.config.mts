@@ -10,6 +10,8 @@ import Sitemap from "vite-plugin-sitemap";
 import { woff2BrowserPlugin } from "../scripts/woff2/woff2-vite-plugins";
 
 import { MERMAID_CHUNKS_LIST_NAME } from "./data/cacheMermaidChunks";
+import { workspacePlugin } from "./workspace/server/workspacePlugin";
+import { collabWorkerDevPlugin } from "./workspace/server/collabWorkerDev";
 
 import type { Plugin, Rollup } from "vite";
 
@@ -279,6 +281,10 @@ export default defineConfig(({ mode }) => {
         generateRobotsTxt: false,
       }),
       woff2BrowserPlugin(),
+      // local folder workspace (Google Drive backed) + `claude` prompts
+      workspacePlugin(),
+      // runs collab-worker/ (`wrangler dev`) so Share works with `yarn start`
+      collabWorkerDevPlugin(path.resolve(__dirname, "../collab-worker")),
       lazyChunksPlugin(
         /[\\/]node_modules[\\/]@excalidraw[\\/]mermaid-to-excalidraw[\\/]/,
         mermaidChunkFileNames,

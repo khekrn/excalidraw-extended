@@ -20,11 +20,11 @@ import type {
   SyncableExcalidrawElement,
 } from "../data";
 import type { TCollabClass } from "./Collab";
-import type { Socket } from "socket.io-client";
+import type { CollabSocket } from "./CollabSocket";
 
 class Portal {
   collab: TCollabClass;
-  socket: Socket | null = null;
+  socket: CollabSocket | null = null;
   socketInitialized: boolean = false; // we don't want the socket to emit any updates until it is fully initialized
   roomId: string | null = null;
   roomKey: string | null = null;
@@ -34,7 +34,7 @@ class Portal {
     this.collab = collab;
   }
 
-  open(socket: Socket, id: string, key: string) {
+  open(socket: CollabSocket, id: string, key: string) {
     this.socket = socket;
     this.roomId = id;
     this.roomKey = key;
@@ -55,6 +55,17 @@ class Portal {
     });
     this.socket.on("room-user-change", (clients: SocketId[]) => {
       this.collab.setCollaborators(clients);
+    });
+    // back online after a dropped connection: send everything we have, in
+    // case our edits from while offline never made it out
+    this.socket.on("reconnect", () => {
+      if (this.isOpen()) {
+        this.broadcastScene(
+          WS_SUBTYPES.UPDATE,
+          this.collab.getSceneElementsIncludingDeleted(),
+          /* syncAll */ true,
+        );
+      }
     });
 
     return socket;

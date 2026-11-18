@@ -156,3 +156,21 @@
     --plus-banner-subtitle: #8f8cc4;
   }
 }
+
+// pages sidebar (workspace) sits beside the editor
+.excalidraw-app {
+  display: flex;
+  width: 100%;
+  overflow: hidden;
+}
+
+.excalidraw-app__editor {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+}
+
+.excalidraw .ws-toggle {
+  margin-right: 0.5rem;
+}
