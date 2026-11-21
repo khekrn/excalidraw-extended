@@ -1,0 +1,128 @@
+// "New deck from pages…" — shown in a `.ws-popover`, so it uses its colors
+
+.deck-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 340px;
+  max-width: calc(100vw - 32px);
+  padding: 8px;
+  font-size: 13px;
+}
+
+.deck-picker__title {
+  font-weight: 600;
+}
+
+.deck-picker__input {
+  height: 30px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 6px;
+  outline: 0;
+  background: var(--ws-hover);
+  color: var(--ws-text);
+  font: inherit;
+
+  &:focus {
+    box-shadow: 0 0 0 2px var(--ws-accent-soft);
+  }
+}
+
+.deck-picker__hint {
+  color: var(--ws-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.deck-picker__subtitle {
+  color: var(--ws-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.deck-picker__list {
+  display: flex;
+  flex-direction: column;
+  max-height: min(280px, 36vh);
+  overflow-y: auto;
+  margin: 0 -4px;
+
+  &--order {
+    max-height: min(200px, 24vh);
+  }
+}
+
+.deck-picker__row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 0 4px;
+  border-radius: 5px;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--ws-hover);
+  }
+
+  &.is-picked .deck-picker__name {
+    font-weight: 500;
+  }
+}
+
+.deck-picker__position {
+  width: 18px;
+  flex: 0 0 auto;
+  color: var(--ws-accent);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.deck-picker__name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deck-picker__folder {
+  margin-left: 6px;
+  color: var(--ws-muted);
+  font-size: 12px;
+}
+
+.deck-picker__moves {
+  display: inline-flex;
+  flex: 0 0 auto;
+
+  button:disabled {
+    opacity: 0.3;
+    cursor: default;
+  }
+}
+
+.deck-picker__option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.deck-picker__error {
+  color: var(--ws-danger);
+  font-size: 12px;
+}
+
+.deck-picker__actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+
+  button:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+}

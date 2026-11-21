@@ -11,47 +11,19 @@ import {
 } from "@excalidraw/excalidraw";
 import { newFrameElement } from "@excalidraw/element";
 
-import type {
-  ExcalidrawElement,
-  ExcalidrawFrameElement,
-  NonDeleted,
-} from "@excalidraw/element/types";
+import type { ExcalidrawElement } from "@excalidraw/element/types";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
+
+import { getSlides, slideIndexOf } from "./order";
+
+import type { Slide } from "./order";
+
+export { getSlides, slideName } from "./order";
+export type { Slide } from "./order";
 
 export const SLIDE_WIDTH = 1280;
 export const SLIDE_HEIGHT = 720;
 const SLIDE_GAP = 160;
-
-export type Slide = NonDeleted<ExcalidrawFrameElement>;
-
-const slideIndexOf = (frame: ExcalidrawElement) => {
-  const index = frame.customData?.slideIndex;
-  return typeof index === "number" && Number.isFinite(index) ? index : null;
-};
-
-export const getSlides = (elements: readonly ExcalidrawElement[]): Slide[] => {
-  const frames = elements.filter(
-    (el): el is Slide => el.type === "frame" && !el.isDeleted,
-  );
-  return frames
-    .map((frame, order) => ({ frame, order, index: slideIndexOf(frame) }))
-    .sort((a, b) => {
-      if (a.index !== null && b.index !== null && a.index !== b.index) {
-        return a.index - b.index;
-      }
-      if (a.index !== null && b.index === null) {
-        return -1;
-      }
-      if (a.index === null && b.index !== null) {
-        return 1;
-      }
-      return a.order - b.order;
-    })
-    .map(({ frame }) => frame);
-};
-
-export const slideName = (slide: Slide, index: number) =>
-  slide.name?.trim() || `Slide ${index + 1}`;
 
 /** cheap fingerprint of a slide's content, for thumbnail caching */
 export const slideFingerprint = (

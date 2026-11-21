@@ -96,7 +96,7 @@ type ParsedScene = {
   files: BinaryFiles;
 };
 
-const parseScene = (text: string): ParsedScene => {
+export const parseScene = (text: string): ParsedScene => {
   const data = JSON.parse(text);
   if (data?.type !== "excalidraw" || !Array.isArray(data.elements)) {
     throw new Error("Not a valid .excalidraw file");

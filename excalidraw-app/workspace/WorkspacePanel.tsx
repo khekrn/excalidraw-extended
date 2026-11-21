@@ -18,7 +18,11 @@ import {
   pickFiles,
 } from "../import/importFiles";
 
+import { getDeckMeta, pageCount } from "../slides/deck";
+
 import { basename, dirname, isInside, workspaceApi } from "./api";
+import { DeckPicker } from "./DeckPicker";
+import { createDeckPage, refreshDeck } from "./decks";
 import {
   currentPageAtom,
   detachedAtom,
@@ -34,7 +38,9 @@ import {
 
 import "./WorkspacePanel.scss";
 
+import type { DeckMeta } from "../slides/deck";
 import type { TrashItem, TreeNode } from "./api";
+import type { DeckRequest } from "./DeckPicker";
 
 // -----------------------------------------------------------------------------
 // icons
@@ -95,6 +101,12 @@ const starIcon = svg(
   <path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z" />,
 );
 const collapseIcon = svg(<path d="m15 6-6 6 6 6M20 6l-6 6 6 6" />);
+const deckIcon = svg(
+  <>
+    <rect x="3" y="4" width="14" height="10" rx="1.5" />
+    <path d="M7 18h12.5a1.5 1.5 0 0 0 1.5-1.5V8" />
+  </>,
+);
 const cloudIcon = svg(
   <path d="M7 18a4.5 4.5 0 0 1-.7-8.95A6 6 0 0 1 17.7 8 4 4 0 0 1 17 18z" />,
   14,
@@ -339,6 +351,7 @@ export const WorkspacePanel = ({ theme }: { theme: "light" | "dark" }) => {
   const [trash, setTrash] = useState<TrashItem[]>([]);
   const [width, setWidth] = useState(loadWidth);
   const [error, setError] = useState<string | null>(null);
+  const [deck, setDeck] = useState<DeckMeta | null>(null);
   const dark = theme === "dark";
 
   const closeMenu = useCallback(() => setMenu(null), []);
@@ -397,7 +410,97 @@ export const WorkspacePanel = ({ theme }: { theme: "light" | "dark" }) => {
     }
   }, [trashOpen, tree, refreshTrash]);
 
+  // is the open page a deck? (debounced — onChange fires a lot)
+  useEffect(() => {
+    if (!excalidrawAPI) {
+      return;
+    }
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let last = "";
+    const check = () => {
+      timer = null;
+      const next = getDeckMeta(excalidrawAPI.getSceneElements());
+      const key = next ? JSON.stringify(next) : "";
+      if (key !== last) {
+        last = key;
+        setDeck(next);
+      }
+    };
+    check();
+    const unsubscribe = excalidrawAPI.onChange(() => {
+      if (!timer) {
+        timer = setTimeout(check, 400);
+      }
+    });
+    return () => {
+      unsubscribe();
+      if (timer) {
+        clearTimeout(timer);
+      }
+    };
+  }, [excalidrawAPI, current]);
+
   // actions -----------------------------------------------------------------
+
+  const toast = (message: string) =>
+    excalidrawAPI?.setToast({ message, closable: true, duration: 5000 });
+
+  /** "New deck from pages…", with `initial` pages already picked */
+  const openDeckPicker = (x: number, y: number, initial: string[] = []) => {
+    const create = async (request: DeckRequest) => {
+      const {
+        path,
+        deck: built,
+        skipped,
+      } = await createDeckPage({
+        ...request,
+        parent: dirname(request.sources[0].path),
+      });
+      if (path) {
+        toast(
+          `Deck "${basename(path)}": ${
+            built.slideCount
+          } slides from ${pageCount(request.sources.length)}${
+            skipped ? ` (${skipped})` : ""
+          }.`,
+        );
+      }
+    };
+    setMenu({
+      x,
+      y,
+      content: (
+        <DeckPicker
+          pages={allNodes.filter((node) => node.type === "file")}
+          initial={initial}
+          onCreate={create}
+          onClose={closeMenu}
+        />
+      ),
+    });
+  };
+
+  const refreshCurrentDeck = () => {
+    if (
+      !excalidrawAPI ||
+      !deck ||
+      !window.confirm(
+        `Rebuild this deck from its ${pageCount(
+          deck.sources.length,
+        )}, in its recorded order?\nChanges made inside the deck are replaced (⌘Z undoes).`,
+      )
+    ) {
+      return;
+    }
+    run(async () => {
+      const { deck: built, skipped } = await refreshDeck(excalidrawAPI);
+      toast(
+        `Deck rebuilt: ${built.slideCount} slides${
+          skipped ? ` (${skipped})` : ""
+        }.`,
+      );
+    });
+  };
 
   const newPage = (parent = "") =>
     run(async () => {
@@ -517,6 +620,18 @@ export const WorkspacePanel = ({ theme }: { theme: "light" | "dark" }) => {
               label: "Duplicate",
               onSelect: () => run(() => workspace.duplicate(node.path)),
             },
+            {
+              label: "New deck from pages…",
+              onSelect: () => openDeckPicker(x, y, [node.path]),
+            },
+            ...(node.path === current && deck
+              ? [
+                  {
+                    label: "Refresh deck from sources",
+                    onSelect: refreshCurrentDeck,
+                  },
+                ]
+              : []),
           ] as MenuItem[])
         : []),
       ...(dirname(node.path)
@@ -551,6 +666,11 @@ export const WorkspacePanel = ({ theme }: { theme: "light" | "dark" }) => {
     const items: MenuItem[] = [
       { label: "New page", onSelect: () => newPage("") },
       { label: "New folder", onSelect: () => newFolder("") },
+      {
+        label: "New deck from pages…",
+        hint: "Slides",
+        onSelect: () => openDeckPicker(x, y),
+      },
       {
         label: "Import as pages…",
         hint: "Word, Markdown",
@@ -922,6 +1042,18 @@ export const WorkspacePanel = ({ theme }: { theme: "light" | "dark" }) => {
             </div>
           )}
 
+          {deck && current && !detached && (
+            <div className="ws-callout">
+              <p>
+                This page is a deck of {pageCount(deck.sources.length)}:{" "}
+                {deck.sources.map((source) => source.name).join(", ")}.
+              </p>
+              <button className="ws-callout__btn" onClick={refreshCurrentDeck}>
+                Refresh deck from sources
+              </button>
+            </div>
+          )}
+
           {searchResults ? (
             <section className="ws-section">
               <div className="ws-section__title">
@@ -957,6 +1089,17 @@ export const WorkspacePanel = ({ theme }: { theme: "light" | "dark" }) => {
                 <div className="ws-section__title">
                   <span>Pages</span>
                   <span className="ws-section__actions">
+                    <button
+                      className="ws-icon-btn"
+                      title="New deck from pages…"
+                      onClick={(event) => {
+                        const rect =
+                          event.currentTarget.getBoundingClientRect();
+                        openDeckPicker(rect.left, rect.bottom + 4);
+                      }}
+                    >
+                      {deckIcon}
+                    </button>
                     <button
                       className="ws-icon-btn"
                       title="New folder"

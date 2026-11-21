@@ -33,6 +33,7 @@ import type { ValueOf } from "@excalidraw/common/utility-types";
 import type { Scene } from "@excalidraw/element";
 
 import { CascadiaFontFaces } from "./Cascadia";
+import { JetBrainsMonoFontFaces } from "./JetBrainsMono";
 import { ComicShannsFontFaces } from "./ComicShanns";
 import { EmojiFontFaces } from "./Emoji";
 import { ExcalidrawFontFace } from "./ExcalidrawFontFace";
@@ -443,6 +444,7 @@ export class Fonts {
     };
 
     init("Cascadia", ...CascadiaFontFaces);
+    init("JetBrains Mono", ...JetBrainsMonoFontFaces);
     init("Comic Shanns", ...ComicShannsFontFaces);
     init("Excalifont", ...ExcalifontFontFaces);
     // keeping for backwards compatibility reasons, uses system font (Helvetica on MacOS, Arial on Win)

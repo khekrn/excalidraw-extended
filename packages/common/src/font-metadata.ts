@@ -93,6 +93,15 @@ export const FONT_METADATA: Record<number, FontMetadata> = {
     },
     deprecated: true,
   },
+  // head/hhea read from JetBrainsMono-Regular.ttf 2.304: unitsPerEm 1000, ascender 1020, descender -300, lineGap 0
+  [FONT_FAMILY["JetBrains Mono"]]: {
+    metrics: {
+      unitsPerEm: 1000,
+      ascender: 1020,
+      descender: -300,
+      lineHeight: 1.32,
+    },
+  },
   [FONT_FAMILY["Liberation Sans"]]: {
     metrics: {
       unitsPerEm: 2048,

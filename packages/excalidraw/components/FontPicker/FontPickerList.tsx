@@ -87,6 +87,7 @@ export const getFontFamilyIcon = (
       return FontFamilyHeadingIcon;
     case FONT_FAMILY["Comic Shanns"]:
     case FONT_FAMILY.Cascadia:
+    case FONT_FAMILY["JetBrains Mono"]:
       return FontFamilyCodeIcon;
     default:
       return FontFamilyNormalIcon;
